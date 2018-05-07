@@ -1,6 +1,6 @@
 ### dumpip 记录用户的IP地址
 
-dumpip 可以用来向用户回显IP地址，并可以将连接信息记录到文件中。
+dumpip 可以用来向用户回显IP地址，并可以将连接信息记录到文件中，支持IPv4/IPv6协议。
 
 ### 编译安装过程
 
@@ -40,3 +40,9 @@ make
 /usr/src/dumpip/dumpip 23 /var/log/23.log
 /usr/src/dumpip/dumpip 3389 /var/log/3389.log
 ```
+
+### IPv6支持
+```
+/usr/src/dumpip/dumpip -6 23 /var/log/23.log
+```
+将允许IPv4/IPv6同时连接
