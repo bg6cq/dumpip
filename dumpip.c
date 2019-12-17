@@ -49,7 +49,7 @@ int main(int argc, char **argv)
 {
 	int listenfd;
 	int childfd;
-	int port;
+	int port, myport;
 	int ipv6 = 0;
 	socklen_t clientlen;
 	struct sockaddr_storage clientaddr;
@@ -98,10 +98,15 @@ int main(int argc, char **argv)
 
 	clientlen = sizeof(clientaddr);
 	while (1) {
+		socklen_t mylen;
+		struct sockaddr_storage myaddr;
 		char hbuf[INET6_ADDRSTRLEN];
+		char mybuf[INET6_ADDRSTRLEN];
 		childfd = accept(listenfd, (struct sockaddr *)&clientaddr, &clientlen);
 		if (childfd < 0)
 			continue;
+		mylen = sizeof(myaddr);
+		getsockname(childfd, (struct sockaddr *)&myaddr, &mylen);
 		if (clientaddr.ss_family == AF_INET6) {
 			struct sockaddr_in6 *r = (struct sockaddr_in6 *)&clientaddr;
 			inet_ntop(AF_INET6, &r->sin6_addr, hbuf, sizeof(hbuf));
@@ -109,12 +114,23 @@ int main(int argc, char **argv)
 				strcpy(hbuf, hbuf + 7);
 
 			port = ntohs(r->sin6_port);
+
+			r = (struct sockaddr_in6 *)&myaddr;
+			inet_ntop(AF_INET6, &r->sin6_addr, mybuf, sizeof(mybuf));
+			if (memcmp(mybuf, "::ffff:", 7) == 0)
+				strcpy(mybuf, mybuf + 7);
+			myport = ntohs(r->sin6_port);
 		} else {
 			struct sockaddr_in *r = (struct sockaddr_in *)&clientaddr;
 			inet_ntop(AF_INET, &r->sin_addr, hbuf, sizeof(hbuf));
 			port = ntohs(r->sin_port);
+			r = (struct sockaddr_in *)&myaddr;
+			inet_ntop(AF_INET, &r->sin_addr, mybuf, sizeof(mybuf));
+			myport = ntohs(r->sin_port);
 		}
-		snprintf(buf, BUFSIZE, "\n\n\nYour IP is %s\n\nYour Port is %d\n\n", hbuf, port);
+		snprintf(buf, BUFSIZE,
+			 "\n\n\nYour IP is %s\n\nYour Port is %d\n\nMy IP is: %s\n\nMy Port is %d\n\n",
+			 hbuf, port, mybuf, myport);
 
 		write(childfd, buf, strlen(buf));
 
@@ -125,9 +141,10 @@ int main(int argc, char **argv)
 			struct tm *c_tm;
 			nowt = time(NULL);
 			c_tm = localtime(&nowt);
-			fprintf(fp, "%d-%02d-%02d %02d:%02d:%02d %s\n",
+			fprintf(fp, "%d-%02d-%02d %02d:%02d:%02d %s %s %d %d\n",
 				c_tm->tm_year + 1900, c_tm->tm_mon + 1,
-				c_tm->tm_mday, c_tm->tm_hour, c_tm->tm_min, c_tm->tm_sec, hbuf);
+				c_tm->tm_mday, c_tm->tm_hour, c_tm->tm_min, c_tm->tm_sec, hbuf,
+				mybuf, port, myport);
 			fclose(fp);
 		}
 
