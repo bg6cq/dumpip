@@ -10,6 +10,8 @@
 #include <time.h>
 #include <netdb.h>
 #include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <arpa/inet.h>
@@ -154,7 +156,7 @@ int main(int argc, char **argv)
 	int optval;
 	char buf[MAXLEN];
 	int c;
-	while ((c = getopt(argc, argv, "dhk:l:u:r:p:")) != EOF)
+	while ((c = getopt(argc, argv, "d6hk:l:u:r:p:")) != EOF)
 		switch (c) {
 		case 'd':
 			debug = 1;
@@ -270,18 +272,18 @@ int main(int argc, char **argv)
 		write(childfd, buf, strlen(buf));
 
 		if (logfile[0]) {
-			FILE *fp;
 			time_t nowt;
 			struct tm *c_tm;
-			fp = fopen(argv[2 + ipv6], "a");
-			if (fp) {
+			int logfd = open(logfile, O_RDWR | O_CREAT | O_APPEND, 0644);
+			if (logfd) {
 				nowt = time(NULL);
 				c_tm = localtime(&nowt);
-				fprintf(fp, "%d-%02d-%02d %02d:%02d:%02d %s %s %d %d\n",
+				snprintf(buf, MAXLEN, "%d-%02d-%02d %02d:%02d:%02d %s %s %d %d\n",
 					c_tm->tm_year + 1900, c_tm->tm_mon + 1,
 				   c_tm->tm_mday, c_tm->tm_hour, c_tm->tm_min, c_tm->tm_sec, hbuf,
 					mybuf, port, myport);
-				fclose(fp);
+				write(logfd, buf, strlen(buf));
+				close(logfd);
 			}
 		}
 		close(childfd);
