@@ -248,14 +248,14 @@ int main(int argc, char **argv)
 			struct sockaddr_in6 *r = (struct sockaddr_in6 *)&clientaddr;
 			inet_ntop(AF_INET6, &r->sin6_addr, hbuf, sizeof(hbuf));
 			if (memcmp(hbuf, "::ffff:", 7) == 0)
-				strcpy(hbuf, hbuf + 7);
+				memmove(hbuf, hbuf + 7, strlen(hbuf)-7);
 
 			port = ntohs(r->sin6_port);
 
 			r = (struct sockaddr_in6 *)&myaddr;
 			inet_ntop(AF_INET6, &r->sin6_addr, mybuf, sizeof(mybuf));
 			if (memcmp(mybuf, "::ffff:", 7) == 0)
-				strcpy(mybuf, mybuf + 7);
+				memmove(mybuf, mybuf + 7, strlen(mybuf)-7);
 			myport = ntohs(r->sin6_port);
 		} else {
 			struct sockaddr_in *r = (struct sockaddr_in *)&clientaddr;
