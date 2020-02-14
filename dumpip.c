@@ -67,7 +67,6 @@ void usage(void)
 	exit(0);
 }
 
-
 char apikey[MAXLEN];
 char logfile[MAXLEN];
 char report_url[MAXLEN];
@@ -144,7 +143,6 @@ int fileexists(const char *filename)
 	return 0;
 }
 
-
 int main(int argc, char **argv)
 {
 	int listenfd;
@@ -192,7 +190,6 @@ int main(int argc, char **argv)
 	}
 	if (port == 0)
 		usage();
-
 
 	if (debug) {
 		printf("apikey: %s\n", apikey);
@@ -242,20 +239,26 @@ int main(int argc, char **argv)
 		childfd = accept(listenfd, (struct sockaddr *)&clientaddr, &clientlen);
 		if (childfd < 0)
 			continue;
+		if (debug)
+			printf("new client connected\n");
 		mylen = sizeof(myaddr);
-		getsockname(childfd, (struct sockaddr *)&myaddr, &mylen);
+		if (getsockname(childfd, (struct sockaddr *)&myaddr, &mylen) != 0) {
+			close(childfd);
+			continue;
+		}
+
 		if (clientaddr.ss_family == AF_INET6) {
 			struct sockaddr_in6 *r = (struct sockaddr_in6 *)&clientaddr;
 			inet_ntop(AF_INET6, &r->sin6_addr, hbuf, sizeof(hbuf));
 			if (memcmp(hbuf, "::ffff:", 7) == 0)
-				memmove(hbuf, hbuf + 7, strlen(hbuf)-7);
+				memmove(hbuf, hbuf + 7, strlen(hbuf) - 6);
 
 			port = ntohs(r->sin6_port);
 
 			r = (struct sockaddr_in6 *)&myaddr;
 			inet_ntop(AF_INET6, &r->sin6_addr, mybuf, sizeof(mybuf));
 			if (memcmp(mybuf, "::ffff:", 7) == 0)
-				memmove(mybuf, mybuf + 7, strlen(mybuf)-7);
+				memmove(mybuf, mybuf + 7, strlen(mybuf) - 6);
 			myport = ntohs(r->sin6_port);
 		} else {
 			struct sockaddr_in *r = (struct sockaddr_in *)&clientaddr;
@@ -265,8 +268,10 @@ int main(int argc, char **argv)
 			inet_ntop(AF_INET, &r->sin_addr, mybuf, sizeof(mybuf));
 			myport = ntohs(r->sin_port);
 		}
+		if (debug)
+			printf("client %s:%d --> server %s:%d\n", hbuf, port, mybuf, myport);
 		snprintf(buf, MAXLEN,
-		    "\n\n\nYour IP is %s\n\nYour Port is %d\n\nMy IP is: %s\n\nMy Port is %d\n\n",
+			 "\n\n\nYour IP is %s\n\nYour Port is %d\n\nMy IP is: %s\n\nMy Port is %d\n\n",
 			 hbuf, port, mybuf, myport);
 
 		write(childfd, buf, strlen(buf));
@@ -275,13 +280,13 @@ int main(int argc, char **argv)
 			time_t nowt;
 			struct tm *c_tm;
 			int logfd = open(logfile, O_RDWR | O_CREAT | O_APPEND, 0644);
-			if (logfd) {
+			if (logfd >= 0) {
 				nowt = time(NULL);
 				c_tm = localtime(&nowt);
 				snprintf(buf, MAXLEN, "%d-%02d-%02d %02d:%02d:%02d %s %s %d %d\n",
-					c_tm->tm_year + 1900, c_tm->tm_mon + 1,
-				   c_tm->tm_mday, c_tm->tm_hour, c_tm->tm_min, c_tm->tm_sec, hbuf,
-					mybuf, port, myport);
+					 c_tm->tm_year + 1900, c_tm->tm_mon + 1,
+					 c_tm->tm_mday, c_tm->tm_hour, c_tm->tm_min, c_tm->tm_sec,
+					 hbuf, mybuf, port, myport);
 				write(logfd, buf, strlen(buf));
 				close(logfd);
 			}
